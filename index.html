@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de celular 🚨</title>
+    <title>Detector CodeMinds 🚨</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #222; color: white; padding: 20px; }
         
@@ -17,10 +17,10 @@
             background: black;
         }
 
-    
+        /* Espelhamento para ficar igual ao treinamento */
         video { 
             width: 100%; height: 100%; object-fit: cover; 
-            transform: scaleX(-1); /* <--- ESPELHAMENTO AQUI */
+            transform: scaleX(-1); 
         }
 
         #resultado { 
@@ -38,8 +38,8 @@
 </head>
 <body>
 
-    <h1>Detector Anti-Celular 📵</h1>
-    <p>Agora com correção de espelho e alarme!</p>
+    <h1>Detector CodeMinds 📵</h1>
+    <p>Monitoramento ativo (Versão Movimento)</p>
 
     <div id="camera-box">
         <video id="video" autoplay playsinline muted></video>
@@ -54,7 +54,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
     <script>
-        const URL_MODELO = "https://teachablemachine.withgoogle.com/models/9QexMYusB/";
+        // SEU LINK NOVO AQUI:
+        const URL_MODELO = "https://teachablemachine.withgoogle.com/models/jWz2PDp6t/";
+        
         let model, maxPredictions;
         const somSirene = document.getElementById('sirene');
 
@@ -64,11 +66,9 @@
             btn.innerText = "CARREGANDO...";
 
             try {
-                // Liga câmera
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 document.getElementById('video').srcObject = stream;
 
-                // Carrega IA
                 model = await tmImage.load(URL_MODELO + "model.json", URL_MODELO + "metadata.json");
                 maxPredictions = model.getTotalClasses();
 
@@ -86,11 +86,14 @@
                 const video = document.getElementById('video');
                 const prediction = await model.predict(video);
                 
-                // Procura a classe "Com celular"
                 let detectou = false;
+
                 for (let i = 0; i < maxPredictions; i++) {
-                    // Baixei para 0.75 (75%) para facilitar a detecção
-                    if (prediction[i].className === "Com celular" && prediction[i].probability > 0.75) {
+                    // TRUQUE: Converte para minúsculo e procura a palavra "celular"
+                    // Assim funciona para "Com celular", "com celular" ou "Class 1 celular"
+                    const nomeClasse = prediction[i].className.toLowerCase();
+                    
+                    if (nomeClasse.includes("celular") && prediction[i].probability > 0.70) {
                         detectou = true;
                     }
                 }
@@ -104,26 +107,23 @@
             const res = document.getElementById('resultado');
             
             if (detectou) {
-                document.body.style.backgroundColor = "#ff0000"; // Fundo Vermelho
-                res.innerText = "🚨 LARGA ESSE CELULAR! 🚨";
+                document.body.style.backgroundColor = "#ff0000";
+                res.innerText = "🚨 CELULAR DETECTADO! 🚨";
                 res.style.backgroundColor = "white";
                 res.style.color = "red";
                 
-                // Toca a sirene se não estiver tocando
                 if (somSirene.paused) somSirene.play();
                 
             } else {
-                document.body.style.backgroundColor = "#222"; // Fundo Escuro
-                res.innerText = "✅ Foco Total";
+                document.body.style.backgroundColor = "#222";
+                res.innerText = "✅ Limpo";
                 res.style.backgroundColor = "#333";
                 res.style.color = "#0f0";
                 
-                // Para a sirene e rebobina
                 somSirene.pause();
                 somSirene.currentTime = 0;
             }
         }
     </script>
 </body>
-</html>
 </html>
