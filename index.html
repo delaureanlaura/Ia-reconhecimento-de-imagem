@@ -3,96 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de Celular</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-
+    <title>Detector Final - CodeMinds</title>
     <style>
-        body { 
-            text-align: center; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            transition: background 0.4s; 
-            padding: 20px; 
-            background-color: #f4f4f9;
-        }
-        #webcam-container { 
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #f4f4f9; padding: 20px; }
+        #camera-box { 
+            width: 320px; height: 240px; 
+            background: #000; 
             margin: 20px auto; 
-            width: 320px; 
-            height: 240px; 
-            border: 5px solid #333; 
-            border-radius: 15px; 
-            overflow: hidden; 
-            background: #000;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            border-radius: 12px; 
+            border: 5px solid #333;
+            overflow: hidden;
+            position: relative;
         }
         video { width: 100%; height: 100%; object-fit: cover; }
-        #alerta { 
-            font-size: 24px; 
-            font-weight: bold; 
-            margin: 20px; 
-            min-height: 40px;
-            color: #333;
+        #status-msg { font-size: 18px; color: #555; margin-bottom: 10px; font-weight: bold; }
+        #resultado { font-size: 24px; font-weight: bold; margin: 20px; padding: 15px; border-radius: 8px; }
+        .btn { 
+            padding: 15px 30px; font-size: 18px; 
+            background: #007bff; color: white; 
+            border: none; border-radius: 8px; cursor: pointer;
         }
-        button { 
-            padding: 15px 40px; 
-            font-size: 18px; 
-            cursor: pointer; 
-            background: #28a745; 
-            color: white; 
-            border: none; 
-            border-radius: 8px;
-            font-weight: bold;
-            transition: transform 0.2s;
-        }
-        button:hover { transform: scale(1.05); }
-        button:disabled { background: #ccc; cursor: not-allowed; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        .aviso-erro { color: red; background: #ffdddd; padding: 10px; border: 1px solid red; display: none; }
     </style>
 </head>
 <body>
 
-    <h1>IA: Detector de Celular</h1>
-    <div id="status">Verificando bibliotecas...</div>
+    <h1>Detector de Celular 📱</h1>
+    <div id="status-msg">🔄 Conectando aos servidores do Google...</div>
     
-    <div id="webcam-container">
+    <div id="erro-bloqueio" class="aviso-erro">
+        ⚠️ <b>ALERTA DE BLOQUEIO:</b><br>
+        O navegador impediu o carregamento da IA.<br>
+        1. Desative o 🛡️ Escudo de Bloqueio do Opera.<br>
+        2. Recarregue a página.
+    </div>
+
+    <div id="camera-box">
         <video id="video" autoplay playsinline muted></video>
     </div>
-    
-    <div id="alerta">Aguardando ativação...</div>
-    <button id="btn" onclick="init()" disabled>CARREGANDO IA...</button>
+
+    <div id="resultado">Aguardando IA...</div>
+    <button id="btn-start" class="btn" onclick="iniciar()" disabled>CARREGANDO SISTEMA...</button>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
     <script>
         const URL_MODELO = "https://teachablemachine.withgoogle.com/models/9QexMYusB/";
-        let model;
+        let model, maxPredictions;
+        let carregou = false;
+
+        // VERIFICAÇÃO DE SEGURANÇA (Roda a cada 1 segundo)
         let tentativas = 0;
-
-        // SISTEMA ANTI-TRAVAMENTO
-        // Verifica a cada 0.5s se a biblioteca carregou
-        const checkLibs = setInterval(() => {
+        const check = setInterval(() => {
             tentativas++;
-            
-            // Se carregou, libera o botão
-            if (typeof tmImage !== 'undefined') {
-                liberarBotao();
-                clearInterval(checkLibs);
-            } 
-            // Se passou 10 segundos (20 tentativas) e nada, avisa o erro
-            else if (tentativas > 20) {
-                document.getElementById('status').innerText = "❌ Falha ao baixar IA. Verifique a internet.";
-                document.getElementById('status').style.color = "red";
-                clearInterval(checkLibs);
+            // Se as bibliotecas existirem, libera o sistema
+            if (typeof tmImage !== 'undefined' && typeof tf !== 'undefined') {
+                clearInterval(check);
+                carregou = true;
+                sistemaPronto();
             }
-        }, 500);
+            // Se passar 8 segundos e nada, mostra aviso de bloqueio
+            else if (tentativas > 8) {
+                document.getElementById('erro-bloqueio').style.display = 'block';
+                document.getElementById('status-msg').innerText = "❌ Falha no download.";
+            }
+        }, 1000);
 
-        function liberarBotao() {
-            const btn = document.getElementById('btn');
+        function sistemaPronto() {
+            const btn = document.getElementById('btn-start');
+            btn.innerText = "LIGAR CÂMERA";
             btn.disabled = false;
-            btn.innerText = "ATIVAR MONITORAMENTO";
-            btn.style.backgroundColor = "#007bff"; // Azul para indicar pronto
-            document.getElementById('alerta').innerText = "Pronto para iniciar!";
-            document.getElementById('status').innerText = "✅ Sistema Carregado";
+            btn.style.background = "#28a745";
+            document.getElementById('status-msg').innerText = "✅ Sistema Carregado!";
         }
 
-        async function init() {
-            const btn = document.getElementById('btn');
-            const alerta = document.getElementById}
+        async function iniciar() {
+            if (!carregou) return alert("A IA não carregou. Verifique sua internet ou bloqueadores.");
+            
+            const btn = document.getElementById('btn-start');
+            const video = document.getElementById('video');
+            
+            btn.disabled = true;
+            btn.innerText = "INICIANDO...";
+
+            try {
+                // 1. Liga Webcam
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                video.srcObject = stream;
+
+                // 2. Carrega Modelo
+                model = await tmImage.load(URL_MODELO + "model.json", URL_MODELO + "metadata.json");
+                maxPredictions = model.getTotalClasses();
+
+                btn.style.display = 'none'; // Some botão
+                document.getElementById('status-msg').innerText = "🎥 Monitorando...";
+                loop(); // Inicia loop
+
+            } catch (e) {
+                alert("Erro: " + e.message);
+                btn.disabled = false;
+                btn.innerText = "TENTAR NOVAMENTE";
+            }
+        }
+
+        async function loop() {
+            if (model) {
+                const video = document.getElementById('video');
+                const prediction = await model.predict(video);
+                
+                let celular = false;
+                // Procura a classe "Com celular"
+                for (let i = 0; i < maxPredictions; i++) {
+                    if (prediction[i].className === "Com celular" && prediction[i].probability > 0.85) {
+                        celular = true;
+                    }
+                }
+
+                const res = document.getElementById('resultado');
+                if (celular) {
+                    document.body.style.backgroundColor = "#ff4d4d";
+                    res.innerText = "⚠️ SOLTA O CELULAR!";
+                    res.style.color = "white";
+                } else {
+                    document.body.style.backgroundColor = "#d4edda";
+                    res.innerText = "✅ FOCO MANTIDO";
+                    res.style.color = "green";
+                }
+            }
+            requestAnimationFrame(loop);
+        }
+    </script>
+</body>
+</html>
