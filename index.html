@@ -3,129 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector Automático ⚡</title>
+    <title>Detector VERSUS 🥊</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; text-align: center; background: #111; color: white; padding: 10px; }
+        body { font-family: 'Arial', sans-serif; text-align: center; background: #111; color: white; margin: 0; padding: 10px; }
         
         #camera-box { 
-            width: 320px; height: 240px; 
-            margin: 10px auto; 
-            border: 4px solid #444;
-            border-radius: 10px;
+            width: 100%; max-width: 320px; height: 240px; 
+            margin: 0 auto; 
+            border: 4px solid #444; border-radius: 10px;
+            overflow: hidden; background: black;
+        }
+        video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+
+        /* ÁREA DA BATALHA */
+        .versus-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px auto;
+            max-width: 400px;
+            height: 40px;
+            background: #333;
+            border-radius: 20px;
             overflow: hidden;
-            background: black;
+            border: 2px solid #555;
         }
 
-        video { 
-            width: 100%; height: 100%; object-fit: cover; 
-            transform: scaleX(-1); /* Espelhado */
+        .barra {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            transition: width 0.1s linear;
+            white-space: nowrap;
         }
 
-        /* Caixa de Status Gigante */
-        #status-box { 
-            font-size: 26px; font-weight: bold; margin: 15px; padding: 20px; 
-            border-radius: 12px; background: #333; transition: all 0.1s;
-        }
+        /* Classe 1 (Celular) - Vermelho */
+        #barra-celular { background: #ff3333; width: 50%; }
+        
+        /* Classe 2 (Sem) - Verde */
+        #barra-sem { background: #00cc66; width: 50%; color: black; }
 
-        #debug-info { font-size: 14px; color: #888; margin-top: 10px; font-family: monospace; }
+        #vencedor { font-size: 28px; font-weight: bold; margin: 20px; padding: 10px; border-radius: 8px; }
 
         .btn { 
-            padding: 15px 30px; font-size: 18px; font-weight: bold;
+            padding: 15px; font-size: 18px; font-weight: bold; 
             background: #007bff; color: white; border: none; border-radius: 8px; 
-            cursor: pointer; margin-top: 10px; width: 100%; max-width: 320px;
+            width: 100%; max-width: 300px; cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <h2>Detector Rápido ⚡</h2>
-
     <div id="camera-box">
         <video id="video" autoplay playsinline muted></video>
     </div>
 
-    <div id="status-box">Aguardando...</div>
-    
-    <div id="debug-info">Certeza: 0%</div>
+    <div id="vencedor">Carregando...</div>
 
-    <button id="btn" class="btn" onclick="iniciar()">LIGAR CÂMERA</button>
+    <div class="versus-container">
+        <div id="barra-celular">COM: 0%</div>
+        <div id="barra-sem">SEM: 0%</div>
+    </div>
 
+    <button id="btn" class="btn" onclick="iniciar()">INICIAR BATALHA</button>
     <audio id="sirene" src="https://www.soundjay.com/mechanical/sounds/smoke-detector-1.mp3" loop></audio>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
     <script>
-        // SEU LINK DO TEACHABLE MACHINE
         const URL_MODELO = "https://teachablemachine.withgoogle.com/models/jWz2PDp6t/";
         
         let model, maxPredictions;
         const somSirene = document.getElementById('sirene');
-        const statusBox = document.getElementById('status-box');
-        const debugBox = document.getElementById('debug-info');
+        const txtVencedor = document.getElementById('vencedor');
+
+        // Elementos das Barras
+        const barraCelular = document.getElementById('barra-celular');
+        const barraSem = document.getElementById('barra-sem');
 
         async function iniciar() {
             const btn = document.getElementById('btn');
-            btn.disabled = true;
-            btn.innerText = "CARREGANDO...";
-
+            btn.disabled = true; btn.innerText = "LIGANDO...";
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 document.getElementById('video').srcObject = stream;
-
                 model = await tmImage.load(URL_MODELO + "model.json", URL_MODELO + "metadata.json");
                 maxPredictions = model.getTotalClasses();
-
                 btn.style.display = 'none';
                 loop();
-            } catch (e) {
-                alert("Erro: " + e.message);
-                btn.disabled = false;
-                btn.innerText = "TENTAR NOVAMENTE";
-            }
+            } catch (e) { alert("Erro: " + e.message); location.reload(); }
         }
 
         async function loop() {
             if (model) {
-                const video = document.getElementById('video');
-                const prediction = await model.predict(video);
+                const prediction = await model.predict(document.getElementById('video'));
                 
-                // PEGA AS DUAS CLASSES PELO ÍNDICE (0 = Class 1, 1 = Class 2)
-                // Class 1 = Com Celular
-                // Class 2 = Sem Celular
-                const probComCelular = prediction[0].probability; 
-                const probSemCelular = prediction[1].probability;
+                // PEGA OS VALORES REAIS (0 a 1)
+                // Assumindo que:
+                // Class 0 = Com Celular
+                // Class 1 = Sem Celular (Seu "2 sem")
+                let probCom = prediction[0].probability;
+                let probSem = prediction[1].probability;
 
-                // ATUALIZA OS NÚMEROS NA TELA
-                debugBox.innerText = `Class 1 (Com): ${(probComCelular*100).toFixed(0)}% | Class 2 (Sem): ${(probSemCelular*100).toFixed(0)}%`;
+                // Converte para Porcentagem (0 a 100)
+                let pctCom = (probCom * 100).toFixed(0);
+                let pctSem = (probSem * 100).toFixed(0);
 
-                // LÓGICA DE TROCA AUTOMÁTICA
-                // Se a probabilidade da Class 1 for maior que 60% (0.60)
-                if (probComCelular > 0.60) {
-                    modoPerigo();
+                // ATUALIZA AS BARRAS NA TELA
+                barraCelular.style.width = pctCom + "%";
+                barraCelular.innerText = "CELULAR: " + pctCom + "%";
+
+                barraSem.style.width = pctSem + "%";
+                barraSem.innerText = "LIMPO: " + pctSem + "%";
+
+                // QUEM GANHA? (Lógica Simples: Quem for maior vence)
+                if (probCom > probSem) {
+                    modoPerigo(); // Vermelho ganha
                 } else {
-                    modoSeguro();
+                    modoSeguro(); // Verde ganha
                 }
             }
-            // Roda o loop o mais rápido possível
             requestAnimationFrame(loop);
         }
 
         function modoPerigo() {
-            statusBox.innerText = "🚨 COM CELULAR!";
-            statusBox.style.backgroundColor = "#ff0000"; // Vermelho
-            statusBox.style.color = "white";
-            
-            if (somSirene.paused) somSirene.play();
+            if (txtVencedor.innerText !== "🚨 CELULAR DETECTADO") {
+                txtVencedor.innerText = "🚨 CELULAR DETECTADO";
+                txtVencedor.style.backgroundColor = "red";
+                document.body.style.backgroundColor = "#500";
+                if (somSirene.paused) somSirene.play();
+            }
         }
 
         function modoSeguro() {
-            statusBox.innerText = "✅ SEM CELULAR";
-            statusBox.style.backgroundColor = "#00cc00"; // Verde
-            statusBox.style.color = "black";
-            
-            somSirene.pause();
-            somSirene.currentTime = 0;
+            if (txtVencedor.innerText !== "✅ ÁREA LIMPA") {
+                txtVencedor.innerText = "✅ ÁREA LIMPA";
+                txtVencedor.style.backgroundColor = "green";
+                document.body.style.backgroundColor = "#111";
+                somSirene.pause();
+                somSirene.currentTime = 0;
+            }
         }
     </script>
 </body>
