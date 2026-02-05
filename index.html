@@ -3,78 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de Celular - IA</title>
+    <title>Detector de Celular - CodeMinds</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+
     <style>
-        body { text-align: center; font-family: 'Segoe UI', sans-serif; transition: background 0.3s; padding: 20px; background-color: #f8f9fa; }
-        #webcam-container { margin: 20px auto; width: 320px; height: 240px; border: 6px solid #333; border-radius: 15px; overflow: hidden; background: #000; }
+        body { 
+            text-align: center; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            transition: background 0.4s; 
+            padding: 20px; 
+            background-color: #f4f4f9;
+        }
+        #webcam-container { 
+            margin: 20px auto; 
+            width: 320px; 
+            height: 240px; 
+            border: 5px solid #333; 
+            border-radius: 15px; 
+            overflow: hidden; 
+            background: #000;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
         video { width: 100%; height: 100%; object-fit: cover; }
-        #alerta { font-size: 24px; font-weight: bold; margin: 20px; min-height: 40px; }
-        button { padding: 15px 30px; font-size: 18px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        #alerta { 
+            font-size: 24px; 
+            font-weight: bold; 
+            margin: 20px; 
+            min-height: 40px;
+            color: #333;
+        }
+        button { 
+            padding: 15px 40px; 
+            font-size: 18px; 
+            cursor: pointer; 
+            background: #28a745; 
+            color: white; 
+            border: none; 
+            border-radius: 8px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:hover { transform: scale(1.05); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
-    <h1>Detector de Celular (HTTPS)</h1>
-    <div id="status">Status: Aguardando interação...</div>
+    <h1>IA: Detector de Celular</h1>
+    <div id="status">Verificando bibliotecas...</div>
     
     <div id="webcam-container">
         <video id="video" autoplay playsinline muted></video>
     </div>
     
-    <div id="alerta">Clique no botão para ativar a IA</div>
-    <button id="btn-start" onclick="init()">ATIVAR CÂMERA E IA</button>
-
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <div id="alerta">Aguardando ativação...</div>
+    <button id="btn" onclick="init()" disabled>CARREGANDO IA...</button>
 
     <script>
+        // URL do seu modelo exportado
         const URL_MODELO = "https://teachablemachine.withgoogle.com/models/9QexMYusB/";
-        let model, maxPredictions;
-        const video = document.getElementById('video');
-
-        async function init() {
-            document.getElementById('btn-start').style.display = 'none';
-            document.getElementById('status').innerText = "Ligando câmera...";
-            
-            try {
-                // 1. Acesso direto à câmera (padrão HTTPS)
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-
-                // 2. Carrega a IA do Teachable Machine
-                document.getElementById('status').innerText = "Carregando inteligência...";
-                model = await tmImage.load(URL_MODELO + "model.json", URL_MODELO + "metadata.json");
-                maxPredictions = model.getTotalClasses();
-                
-                document.getElementById('status').innerText = "✅ SISTEMA ATIVO";
-                predict();
-            } catch (e) {
-                document.getElementById('status').innerText = "❌ Erro: " + e.message;
-                console.error(e);
-            }
-        }
-
-        async function predict() {
-            const prediction = await model.predict(video);
-            let usandoCelular = false;
-
-            for (let i = 0; i < maxPredictions; i++) {
-                // Certifique-se que o nome da classe no Teachable Machine é "Com celular"
-                if (prediction[i].className === "Com celular" && prediction[i].probability > 0.85) {
-                    usandoCelular = true;
-                }
-            }
-
-            const alerta = document.getElementById('alerta');
-            if (usandoCelular) {
-                document.body.style.backgroundColor = "#ff4d4d";
-                alerta.innerText = "⚠️ SOLTA O CELULAR!";
-            } else {
-                document.body.style.backgroundColor = "#d4edda";
-                alerta.innerText = "✅ FOCO MANTIDO";
-            }
-            requestAnimationFrame(predict);
-        }
-    </script>
-</body>
-</html>
