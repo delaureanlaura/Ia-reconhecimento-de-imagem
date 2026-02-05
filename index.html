@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de Celular - CodeMinds</title>
+    <title>Detector de Celular</title>
     
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 
     <style>
         body { 
@@ -62,5 +62,37 @@
     <button id="btn" onclick="init()" disabled>CARREGANDO IA...</button>
 
     <script>
-        // URL do seu modelo exportado
         const URL_MODELO = "https://teachablemachine.withgoogle.com/models/9QexMYusB/";
+        let model;
+        let tentativas = 0;
+
+        // SISTEMA ANTI-TRAVAMENTO
+        // Verifica a cada 0.5s se a biblioteca carregou
+        const checkLibs = setInterval(() => {
+            tentativas++;
+            
+            // Se carregou, libera o botão
+            if (typeof tmImage !== 'undefined') {
+                liberarBotao();
+                clearInterval(checkLibs);
+            } 
+            // Se passou 10 segundos (20 tentativas) e nada, avisa o erro
+            else if (tentativas > 20) {
+                document.getElementById('status').innerText = "❌ Falha ao baixar IA. Verifique a internet.";
+                document.getElementById('status').style.color = "red";
+                clearInterval(checkLibs);
+            }
+        }, 500);
+
+        function liberarBotao() {
+            const btn = document.getElementById('btn');
+            btn.disabled = false;
+            btn.innerText = "ATIVAR MONITORAMENTO";
+            btn.style.backgroundColor = "#007bff"; // Azul para indicar pronto
+            document.getElementById('alerta').innerText = "Pronto para iniciar!";
+            document.getElementById('status').innerText = "✅ Sistema Carregado";
+        }
+
+        async function init() {
+            const btn = document.getElementById('btn');
+            const alerta = document.getElementById}
